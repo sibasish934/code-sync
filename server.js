@@ -7,10 +7,14 @@ import ACTIONS from "./Actions.js";
 const app = express();
 const server = http.createServer(app);
 import path from "path";
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
 
 const io = new Server(server);
 
 const port = process.env.PORT || 5000;
+const host = process.env.HOST || '0.0.0.0';
 
 app.use(express.static('dist'));
 

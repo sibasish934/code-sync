@@ -1,17 +1,8 @@
-# FROM node:20.9.0
-# WORKDIR /app
-# COPY package*.json .
-# ARG VITE_APP_BACKEND_URL
-# ENV VITE_APP_BACKEND_URL=${VITE_APP_BACKEND_URL}
-# RUN npm install
-# COPY . .
-# EXPOSE 5000
-# CMD [ "npm", "run", "dev" ]
-
+# Use an official Node.js runtime as a parent image
 FROM node:20.9.0
 
-# Create a non-root user and group
-RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin -c "Docker image user" appuser
+# Create and change to a non-root user
+RUN useradd -ms /bin/bash appuser
 
 # Set the working directory
 WORKDIR /app
@@ -19,9 +10,9 @@ WORKDIR /app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Set environment variable
-ARG VITE_APP_BACKEND_URL
-ENV VITE_APP_BACKEND_URL=${VITE_APP_BACKEND_URL} 
+# Define build argument and environment variable
+ARG VITE_REACT_BACKEND_URL
+ENV VITE_REACT_BACKEND_URL=${VITE_REACT_BACKEND_URL}
 
 # Install dependencies
 RUN npm install
@@ -29,15 +20,14 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
-# Change ownership of the application directory
+# Change ownership of the /app directory to the non-root user
 RUN chown -R appuser:appuser /app
+
+# Expose the port your app runs on
+EXPOSE 5000
 
 # Switch to the non-root user
 USER appuser
 
-# Expose the application port
-EXPOSE 5000
-
 # Start the application
-CMD ["npm", "run", "dev"]
-
+CMD [ "npm", "run", "dev" ]
