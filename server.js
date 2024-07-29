@@ -19,10 +19,12 @@ const io = new Server(server);
 const port = process.env.PORT || 5000;
 const host = process.env.HOST || '0.0.0.0';
 
-app.use(express.static('dist'));
+console.log(__dirname)
+
+app.use(express.static(__dirname + '/dist'));
 
 app.use((req, res, next)=>{
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'))
+    res.sendFile(path.join(__dirname + 'dist/index.html'))
 })
 
 const userSocketMap = {};
