@@ -4,12 +4,15 @@ import express from "express";
 import {Server} from "socket.io";
 import http from "http"
 import ACTIONS from "./Actions.js";
+import path, {dirname} from "path";
+import { fileURLToPath } from 'url';
+
+
 const app = express();
 const server = http.createServer(app);
-import path from "path";
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const io = new Server(server);
 
