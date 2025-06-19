@@ -5,14 +5,19 @@ phases:
     commands:
       - echo Logging in to Amazon ECR...
       - BRANCH_NAME=$(echo $CODEBUILD_WEBHOOK_HEAD_REF | sed 's|refs/heads/||')
+      - echo "Detected branch: $BRANCH_NAME"
       - |
-        if [[ "$BRANCH_NAME" =~ ^dev-v[0-9]+\.[0-9]+$ ]]; then ECR_REPO_NAME=$AWS_UAT_REPO;
-        elif [[ "$BRANCH_NAME" =~ ^hotfix-v[0-9]+\.[0-9]+$ ]]; then ECR_REPO_NAME=$AWS_PREPROD_REPO;
-        else echo "Invalid branch: $BRANCH_NAME"; exit 1; fi
-      - REPOSITORY_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME"
-      - IMAGE_REPO_NAME=$ECR_REPO_NAME
-      - echo "Using repository: $REPOSITORY_URI"
-      - echo $BRANCH_NAME
+        if [[ "$BRANCH_NAME" =~ ^dev-v[0-9]+\.[0-9]+$ ]]; then
+          ECR_REPO_NAME=$AWS_UAT_REPO
+        elif [[ "$BRANCH_NAME" =~ ^hotfix-v[0-9]+\.[0-9]+$ ]]; then
+          ECR_REPO_NAME=$AWS_PREPROD_REPO
+        else
+          echo "Invalid branch: $BRANCH_NAME"
+          exit 1
+        fi
+        REPOSITORY_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME"
+        IMAGE_REPO_NAME=$ECR_REPO_NAME
+        echo "Using repository: $REPOSITORY_URI"
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
 
   build:
