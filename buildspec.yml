@@ -10,7 +10,7 @@ phases:
       - echo "Trigger detail: $TRIGGER_DETAIL"
       - PIPELINE_BRANCH=$(echo $TRIGGER_DETAIL | jq -r '.branchName')
       - echo "Pipeline branch is $PIPELINE_BRANCH"
-      - FINAL_BRANCH_NAME = $PIPELINE_BRANCH
+      - FINAL_BRANCH_NAME=$PIPELINE_BRANCH
       - |
         if [[ "$FINAL_BRANCH_NAME" =~ ^dev-v[0-9]+\.[0-9]+$ ]]; then
           export ECR_REPO_NAME=$AWS_UAT_REPO
