@@ -3,15 +3,21 @@ phases:
   pre_build:
     commands:
       - echo "Logging in to Amazon ECR..."
-      - BRANCH_NAME=$(echo $CODEBUILD_WEBHOOK_HEAD_REF | sed 's|refs/heads/||')
-      - echo "Detected branch is $BRANCH_NAME"
+      - echo "Getting latest pipeline execution..."
+      - LATEST_EXECUTION_ID=$(aws codepipeline list-pipeline-executions --pipeline-name code-sync-pipeline --query 'pipelineExecutionSummaries[0].pipelineExecutionId' --output text)
+      - echo "Latest execution ID is $LATEST_EXECUTION_ID"
+      - TRIGGER_DETAIL=$(aws codepipeline get-pipeline-execution --pipeline-name code-sync-pipeline --pipeline-execution-id $LATEST_EXECUTION_ID --query 'pipelineExecution.trigger.triggerDetail' --output text)
+      - echo "Trigger detail: $TRIGGER_DETAIL"
+      - PIPELINE_BRANCH=$(echo $TRIGGER_DETAIL | jq -r '.branchName')
+      - echo "Pipeline branch is $PIPELINE_BRANCH"
+      - FINAL_BRANCH_NAME = $PIPELINE_BRANCH
       - |
-        if [[ "$BRANCH_NAME" =~ ^dev-v[0-9]+\.[0-9]+$ ]]; then
+        if [[ "$FINAL_BRANCH_NAME" =~ ^dev-v[0-9]+\.[0-9]+$ ]]; then
           export ECR_REPO_NAME=$AWS_UAT_REPO
-        elif [[ "$BRANCH_NAME" =~ ^hotfix-v[0-9]+\.[0-9]+$ ]]; then
+        elif [[ "$FINAL_BRANCH_NAME" =~ ^hotfix-v[0-9]+\.[0-9]+$ ]]; then
           export ECR_REPO_NAME=$AWS_PREPROD_REPO
         else
-          echo "Invalid branch: $BRANCH_NAME"
+          echo "Invalid branch: $FINAL_BRANCH_NAME"
           exit 1
         fi
       - export REPOSITORY_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME"
