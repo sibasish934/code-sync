@@ -1,39 +1,37 @@
-version: 0.1
-
+version: 0.2
 phases:
   pre_build:
     commands:
-      - echo Logging in to Amazon ECR...
-      - BRANCH_NAME=$(echo $CODEBUILD_WEBHOOK_HEAD_REF | sed 's|refs/heads/||')
-      - |
-        if [[ "$BRANCH_NAME" =~ ^dev-v[0-9]+\.[0-9]+$ ]]; then
-          ECR_REPO_NAME=$AWS_UAT_REPO
-        elif [[ "$BRANCH_NAME" =~ ^hotfix-v[0-9]+\.[0-9]+$ ]]; then
-          ECR_REPO_NAME=$AWS_PREPROD_REPO
-        else
-          echo "Invalid branch: $BRANCH_NAME"
-          exit 1
-        fi
-      - REPOSITORY_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME"
-      - IMAGE_REPO_NAME=$ECR_REPO_NAME
-      - echo "Using repository: $REPOSITORY_URI"
-      - echo $BRANCH_NAME
+      - echo "Logging in to Amazon ECR..."
+      - echo "Getting latest pipeline execution..."
+      - LATEST_EXECUTION_ID=$(aws codepipeline list-pipeline-executions --pipeline-name code-sync-pipeline --query 'pipelineExecutionSummaries[0].pipelineExecutionId' --output text)
+      - echo "Latest execution ID is $LATEST_EXECUTION_ID"
+      - TRIGGER_DETAIL=$(aws codepipeline get-pipeline-execution --pipeline-name code-sync-pipeline --pipeline-execution-id $LATEST_EXECUTION_ID --query 'pipelineExecution.trigger.triggerDetail' --output text)
+      - echo "Trigger detail $TRIGGER_DETAIL"
+      - PIPELINE_BRANCH=$(echo $TRIGGER_DETAIL | jq -r '.branchName')
+      - echo "Pipeline branch is $PIPELINE_BRANCH"
+      - FINAL_BRANCH_NAME=$PIPELINE_BRANCH
+      - echo "Final branch name is $FINAL_BRANCH_NAME"
+      - 'if [[ "$FINAL_BRANCH_NAME" =~ ^dev-v[0-9]+\.[0-9]+$ ]]; then export ECR_REPO_NAME=$AWS_UAT_REPO; elif [[ "$FINAL_BRANCH_NAME" =~ ^hotfix-v[0-9]+\.[0-9]+$ ]]; then export ECR_REPO_NAME=$AWS_PREPROD_REPO; else echo "Invalid branch $FINAL_BRANCH_NAME"; exit 1; fi'
+      - echo "ECR_REPO_NAME is set to $ECR_REPO_NAME"
+      - export REPOSITORY_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME"
+      - export IMAGE_REPO_NAME=$ECR_REPO_NAME
+      - echo "Using repository $REPOSITORY_URI"
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
-      
   build:
     commands:
-      - echo Build started on `date`
-      - echo Building the Docker image...
+      - echo "Build started on $(date)"
+      - echo "Building the Docker image..."
       - docker build -t $REPOSITORY_URI:$IMAGE_TAG .
-      - docker tag $REPOSITORY_URI $REPOSITORY_URI:$IMAGE_TAG
+      - docker tag $REPOSITORY_URI:$IMAGE_TAG $REPOSITORY_URI:latest
   post_build:
     commands:
-      - echo Build completed on `date`
-      - echo Pushing the Docker image...
+      - echo "Build completed on $(date)"
+      - echo "Pushing the Docker image..."
       - docker push $REPOSITORY_URI:$IMAGE_TAG
-      - echo Writing image definitions file...
+      - docker push $REPOSITORY_URI:latest
+      - echo "Writing image definitions file..."
       - printf '[{"name":"%s","imageUri":"%s"}]' "$IMAGE_REPO_NAME" "$REPOSITORY_URI:$IMAGE_TAG" > imagedefinitions.json
-
 artifacts:
   files:
     - imagedefinitions.json
