@@ -23,7 +23,7 @@ const App = () => {
             },
           }}
         ></Toaster>
-        <>Testing..</>
+        <h1>Testing..</h1>
       </div>
     </>
   );
