@@ -9,4 +9,4 @@ Currently, two official plugins are available:
 
 This is testing commit.
 
-This is testing commit 2.
+This is testing commit 2
